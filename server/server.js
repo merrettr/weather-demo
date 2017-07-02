@@ -2,11 +2,13 @@ import fs from 'fs';
 import express from 'express';
 import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import fetch from 'isomorphic-fetch';
-import { mongoHost, googleApiKey } from './config';
+import { port, mongoHost, googleApiKey } from './config';
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 
 mongoose.connect(mongoHost, { useMongoClient: true });
 mongoose.Promise = Promise;
@@ -36,8 +38,9 @@ mongoose.connection.once('open', () => {
         () => {}))
   });
 
-  const updateWeather = async () => {
+  const updateWeather = async (resolve) => {
     const cities = await City.find({});
+    let count = 0;
 
     cities.forEach(async ({ _id, name }) => {
       try {
@@ -46,12 +49,20 @@ mongoose.connection.once('open', () => {
         });
 
         const { condition, lat, long } = (await weather.json()).query.results.channel.item;
+        // temps come in from the api in fahrenheit
+        const celsius = Math.floor((condition.temp - 32) * 5 / 9);
+
         City.findOneAndUpdate(
           { _id },
-          { temperature: condition.temp, weather: condition.text, lat, long },
+          { temperature: celsius, weather: condition.text, lat, long },
           () => {});
       } catch (e) {
-        console.error('error checking weather api', e);
+        // api doesnt always match up for all cities so it may have issues with some calls
+      }
+
+      if (++count === cities.length) {
+        resolve();
+        console.log('finished weather');
       }
     })
   };
@@ -70,32 +81,31 @@ mongoose.connection.once('open', () => {
           { dstOffset, rawOffset, timezone: timeZoneName },
           () => {});
       } catch (e) {
-        console.error('error checking time api', e);
+        // if some of the data from the weather call wasn't complete then it might cause the timezone call to fail since it uses the coordinated from it
       }
     });
   };
 
-  /*
-  updateWeather();
-  updateTimezone();
-  */
+  // only check the timezones after the weather because we use the coordinated from the weather api to get the timezones
+  updateWeather(updateTimezone);
 
   app.get('/cities', (req, res) => City
-      .find()
-      .then(cities => res.send(cities)));
+    .find()
+    .sort('name')
+    .then(cities => res.send(cities)));
 
   app.delete('/cities/:id', (req, res) => City
     .remove({ _id: req.params.id })
     .then(res.send()));
 
-  app.put('/cities/:id', (req, res) => City.findOneAndUpdate(
+  app.patch('/cities/:id', (req, res) => City.findOneAndUpdate(
       { _id: req.params.id },
       req.body,
       { new: true },
       (error, city) => res.send(city)));
 
-  app.listen(8080, () => {
-    console.log('App listening on port 8080!');
+  app.listen(port, () => {
+    console.log(`App listening on port ${port}!`);
   });
 });
 
