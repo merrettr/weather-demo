@@ -71,18 +71,20 @@ mongoose.connection.once('open', () => {
     const cities = await City.find({});
     const currentTs = new Date().getTime() / 1000;
 
-    cities.forEach(async ({ _id, long, lat }) => {
-      try {
-        const timezone = await fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${long}&timestamp=${currentTs}&key=${googleApiKey}`);
+    cities
+      .filter(({ timezone }) => !timezone)
+      .forEach(async ({ _id, long, lat }) => {
+        try {
+          const timezone = await fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${long}&timestamp=${currentTs}&key=${googleApiKey}`);
 
-        const { dstOffset, rawOffset, timeZoneName } = await timezone.json();
-        City.findOneAndUpdate(
-          { _id },
-          { dstOffset, rawOffset, timezone: timeZoneName },
-          () => {});
-      } catch (e) {
-        // if some of the data from the weather call wasn't complete then it might cause the timezone call to fail since it uses the coordinated from it
-      }
+          const { dstOffset, rawOffset, timeZoneName } = await timezone.json();
+          City.findOneAndUpdate(
+            { _id },
+            { dstOffset, rawOffset, timezone: timeZoneName },
+            () => {});
+        } catch (e) {
+          // if some of the data from the weather call wasn't complete then it might cause the timezone call to fail since it uses the coordinated from it
+        }
     });
   };
 
