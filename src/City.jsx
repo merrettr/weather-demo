@@ -20,7 +20,7 @@ export default class extends Component {
 
     this.setState({
       time: new Date(
-        new Date().getTime() + ((dstOffset + rawOffset) || 0) * 1000
+        new Date().getTime() + (dstOffset + rawOffset || 0) * 1000
       ).toLocaleString(),
     });
   };

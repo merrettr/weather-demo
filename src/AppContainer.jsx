@@ -2,11 +2,13 @@ import React, { Component } from 'react';
 import fetch from 'isomorphic-fetch';
 import App from './App';
 import UpdateCity from './UpdateCity';
+import Error from './Error';
 
 export default class AppContainer extends Component {
   state = {
     cities: [],
     updateId: undefined,
+    error: undefined,
   };
 
   componentDidMount() {
@@ -21,40 +23,54 @@ export default class AppContainer extends Component {
       const cities = await fetch(`${process.env.REACT_APP_API_URL}/cities`);
       this.setState({ cities: await cities.json() });
     } catch (e) {
-      console.error(e);
+      this.setState({ error: e.message });
     }
   };
 
   updateCity = city => {
-    fetch(`${process.env.REACT_APP_API_URL}/cities/${city._id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(city),
-      headers: { 'content-type': 'application/json' },
-    });
-    this.setState(prev => ({
-      updateId: undefined,
-      cities: prev.cities.map(c => {
-        if (c._id !== city._id) {
-          return c;
-        }
+    try {
+      fetch(`${process.env.REACT_APP_API_URL}/cities/${city._id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(city),
+        headers: { 'content-type': 'application/json' },
+      });
+      this.setState(prev => ({
+        updateId: undefined,
+        cities: prev.cities.map(c => {
+          if (c._id !== city._id) {
+            return c;
+          }
 
-        return city;
-      }),
-    }));
+          return city;
+        }),
+      }));
+    } catch (e) {
+      this.setState({ error: e.message });
+    }
   };
 
   deleteCity = id => {
-    fetch(`${process.env.REACT_APP_API_URL}/cities/${id}`, {
-      method: 'DELETE',
-    });
-    this.setState(prev => ({
-      cities: prev.cities.filter(({ _id }) => _id !== id),
-    }));
+    try {
+      fetch(`${process.env.REACT_APP_API_URL}/cities/${id}`, {
+        method: 'DELETE',
+      });
+      this.setState(prev => ({
+        cities: prev.cities.filter(({ _id }) => _id !== id),
+      }));
+    } catch (e) {
+      this.setState({ error: e.message });
+    }
   };
 
   render() {
     return (
       <div>
+        {this.state.error &&
+          <Error
+            error={this.state.error}
+            onDismiss={() => this.setState({ error: undefined })}
+          />}
+
         <App
           cities={this.state.cities}
           onDelete={this.deleteCity}
