@@ -26,14 +26,11 @@ export default class AppContainer extends Component {
   };
 
   updateCity = city => {
-    const cities = fetch(
-      `${process.env.REACT_APP_API_URL}/cities/${city._id}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify(city),
-        headers: { 'content-type': 'application/json' },
-      }
-    );
+    fetch(`${process.env.REACT_APP_API_URL}/cities/${city._id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(city),
+      headers: { 'content-type': 'application/json' },
+    });
     this.setState(prev => ({
       updateId: undefined,
       cities: prev.cities.map(c => {
@@ -59,9 +56,7 @@ export default class AppContainer extends Component {
     return (
       <div>
         <App
-          cities={this.state.cities.sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )}
+          cities={this.state.cities}
           onDelete={this.deleteCity}
           onEdit={id => this.setState({ updateId: id })}
         />
