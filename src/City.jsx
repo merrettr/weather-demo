@@ -1,36 +1,69 @@
 import React, { Component } from 'react';
+import { Button, Glyphicon } from 'react-bootstrap';
 
 export default class extends Component {
   state = {
-    time: ''
+    time: '',
   };
 
   componentDidMount() {
     this.calculateTime();
-    setInterval(this.calculateTime, 1000)
+    this.interval = setInterval(this.calculateTime, 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
   }
 
   calculateTime = () => {
     const { dstOffset, rawOffset } = this.props;
-    const now = new Date();
-    const timestamp = now.getTime() / 1000 + now.getTimezoneOffset() * 60;
 
     this.setState({
-      time: new Date(timestamp * 1000 + dstOffset + rawOffset).toLocaleString(),
-    })
+      time: new Date(
+        new Date().getTime() + (dstOffset + rawOffset) * 1000
+      ).toLocaleString(),
+    });
   };
 
   render() {
-    const { _id, name, country, temperature, timezone} = this.props;
+    const {
+      _id,
+      name,
+      country,
+      temperature,
+      timezone,
+      onEdit,
+      onDelete,
+    } = this.props;
 
     return (
       <tr key={_id}>
-        <td>{name}</td>
-        <td>{country}</td>
-        <td>{temperature}</td>
-        <td>{timezone}</td>
-        <td>{this.state.time}</td>
+        <td>
+          {name}
+        </td>
+        <td>
+          {country}
+        </td>
+        <td>
+          {temperature}&deg;C
+        </td>
+        <td>
+          {timezone}
+        </td>
+        <td>
+          {this.state.time}
+        </td>
+        <td>
+          <Button onClick={() => onEdit(_id)}>
+            <Glyphicon glyph="edit" />
+          </Button>
+        </td>
+        <td>
+          <Button onClick={() => onDelete(_id)}>
+            <Glyphicon style={{ color: 'red' }} glyph="remove" />
+          </Button>
+        </td>
       </tr>
-    )
+    );
   }
 }
